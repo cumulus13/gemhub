@@ -1,0 +1,25 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+.env
+data/
+*.db
+
+# Ignore Sublime Text project files
+*.sublime-project
+*.sublime-workspace
+
+# Added entries (4 items)
+ANSWER*.md
+QUESTION*.md
+PLAN*.md
+ANSWER*.html
+
+# Added entries (1 items)
+ANSWER*

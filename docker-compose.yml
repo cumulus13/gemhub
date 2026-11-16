@@ -1,0 +1,50 @@
+# Production-shaped stack: gemhub + PostgreSQL + Redis.
+# Run:  docker compose up -d   then open http://localhost:8080
+services:
+  gemhub:
+    build: .
+    image: ghcr.io/cumulus13/gemhub:latest
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      GEMHUB_DATABASE_URL: postgresql+psycopg://gemhub:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/gemhub
+      GEMHUB_REDIS_URL: redis://redis:6379/0
+      GEMHUB_PUBLIC_URL: ${GEMHUB_PUBLIC_URL:-http://localhost:8080}
+      GEMHUB_CACHE_MAX_BYTES: ${GEMHUB_CACHE_MAX_BYTES:-0}
+    volumes:
+      - gemhub-data:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: gemhub
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: gemhub
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gemhub -d gemhub"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru", "--save", ""]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  gemhub-data:
+  postgres-data:

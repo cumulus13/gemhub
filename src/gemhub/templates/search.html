@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}{{ query }}: search results, gemhub{% endblock %}
+{% block content %}
+<div class="ledger-head">
+  <h1 class="visually-hidden">Search results</h1>
+  <h2>Results for “{{ query }}”</h2>
+  <p class="totals">From rubygems.org, page {{ page }}</p>
+</div>
+{% if results %}
+  <ul class="ledger">
+    {% for gem in results %}
+      <li>
+        <a class="row" href="{{ url_for('web.gem_page', name=gem.name) }}">
+          <span class="facet{% if gem.name not in in_hub %} aging{% endif %}" aria-hidden="true"></span>
+          <span class="row-name">{{ gem.name }}{% if gem.version %}<small>{{ gem.version }}</small>{% endif %}</span>
+          <span class="row-summary">{{ gem.info or "No description." }}</span>
+          <span class="row-meta"><strong>{{ (gem.downloads or 0)|intcomma }}</strong> downloads{% if gem.private %}, private{% elif gem.name in in_hub %}, in this hub{% else %}, not cached yet{% endif %}</span>
+        </a>
+      </li>
+    {% endfor %}
+  </ul>
+  <nav class="pager" aria-label="Pages">
+    <span>Page {{ page }}</span>
+    <ul>
+      {% if page > 1 %}<li><a rel="prev" href="{{ url_for('web.search', query=query, page=page - 1) }}">Previous</a></li>{% endif %}
+      <li><a rel="next" href="{{ url_for('web.search', query=query, page=page + 1) }}">Next</a></li>
+    </ul>
+  </nav>
+{% else %}
+  <div class="empty">
+    <h3>{% if page > 1 %}No more results{% else %}No gems matched{% endif %}</h3>
+    <p>{% if page > 1 %}That was the last page for “{{ query }}”.{% else %}Check the spelling, or try a shorter search term.{% endif %}</p>
+    {% if page > 1 %}<p><a href="{{ url_for('web.search', query=query) }}">Back to the first page</a></p>{% endif %}
+  </div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% set latest = data.version or '' %}
+{% block title %}{{ view.name }}{% if latest %} {{ latest }}{% endif %}: gemhub{% endblock %}
+{% block description %}{{ data.info|default('', true)|truncate(160) }}{% endblock %}
+{% block content %}
+<header class="gem-head">
+  <p class="crumbs"><a href="{{ url_for('web.home') }}">Browse</a> / {{ view.name }}</p>
+  <div class="gem-title">
+    <h1>{{ view.name }}</h1>
+    {% if latest %}<span class="version-badge">{{ latest }}</span>{% endif %}
+    {% if view.private %}<span class="tag">private</span>{% endif %}
+  </div>
+  {% if data.info %}<p class="gem-summary">{{ data.info|truncate(220) }}</p>{% endif %}
+</header>
+
+{% if view.stale %}
+<p class="notice" role="status">rubygems.org could not be reached, so this page shows what was stored {{ view.fetched_at|ago }}. It refreshes itself once the connection is back.</p>
+{% endif %}
+
+<div class="layout">
+  <div>
+    <section class="block" aria-labelledby="install-title">
+      <h2 id="install-title">Install</h2>
+      <div class="install">
+        <header><span>Gemfile</span><button type="button" data-copy="snippet-gemfile">Copy</button></header>
+        <pre class="code" id="snippet-gemfile">source "{{ hub_url }}"
+
+gem "{{ view.name }}"{% if latest %}, "{{ latest|pessimistic }}"{% endif %}</pre>
+      </div>
+      <div class="install">
+        <header><span>Command line</span><button type="button" data-copy="snippet-cli">Copy</button></header>
+        <pre class="code" id="snippet-cli">gem install {{ view.name }} --clear-sources --source {{ hub_url }}</pre>
+      </div>
+      <div class="install">
+        <header><span>Use this hub for every Bundler project</span><button type="button" data-copy="snippet-mirror">Copy</button></header>
+        <pre class="code" id="snippet-mirror">bundle config set --global mirror.https://rubygems.org {{ hub_url }}</pre>
+      </div>
+    </section>
+
+    {% if data.info %}
+    <section class="block" aria-labelledby="about-title">
+      <h2 id="about-title">About</h2>
+      <p class="description">{{ data.info }}</p>
+    </section>
+    {% endif %}
+
+    {% if recent %}
+    <section class="block" aria-labelledby="versions-title">
+      <h2 id="versions-title">Recent versions</h2>
+      <div class="table-scroll">
+        <table class="data">
+          <thead>
+            <tr><th scope="col">Version</th><th scope="col">Built</th><th scope="col" class="num">Downloads</th><th scope="col"><span class="visually-hidden">Share of the most downloaded version shown</span></th></tr>
+          </thead>
+          <tbody>
+            {% for v in recent %}
+            <tr>
+              <td class="mono">{{ v.number }}{% if v.platform and v.platform != 'ruby' %}<span class="tag">{{ v.platform }}</span>{% endif %}{% if v.prerelease %}<span class="tag">pre-release</span>{% endif %}</td>
+              <td>{{ v.created_at|datefmt }}</td>
+              <td class="num">{{ (v.downloads_count or 0)|intcomma }}</td>
+              <td><svg class="bar" viewBox="0 0 100 6" preserveAspectRatio="none" aria-hidden="true"><rect width="{{ (v.downloads_count or 0)|percent(max_dl) }}" height="6"/></svg></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% if total_versions > recent|length %}
+        <p><a href="{{ url_for('web.gem_versions', name=view.name) }}">See all {{ total_versions|intcomma }} versions</a></p>
+      {% endif %}
+    </section>
+    {% endif %}
+
+    <section class="block" aria-labelledby="deps-title">
+      <h2 id="deps-title">Dependencies</h2>
+      {% if runtime %}
+        <ul class="deps">
+          {% for dep in runtime %}
+          <li><a href="{{ url_for('web.gem_page', name=dep.name) }}">{{ dep.name }}</a><span class="req">{{ dep.requirements }}</span></li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="muted">This gem has no runtime dependencies.</p>
+      {% endif %}
+      {% if development %}
+        <h3 class="muted">Development</h3>
+        <ul class="deps">
+          {% for dep in development %}
+          <li><a href="{{ url_for('web.gem_page', name=dep.name) }}">{{ dep.name }}</a><span class="req">{{ dep.requirements }}</span></li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </section>
+  </div>
+
+  <aside aria-label="Gem details">
+    <div class="panel">
+      <h2>Downloads</h2>
+      <dl class="facts">
+        {% if not view.private %}<div><dt>All time on rubygems.org</dt><dd class="big">{{ (data.downloads or 0)|intcomma }}</dd></div>
+        {% if latest %}<div><dt>Version {{ latest }}</dt><dd>{{ (data.version_downloads or 0)|intcomma }}</dd></div>{% endif %}{% endif %}
+        <div><dt>Served by this hub</dt><dd>{{ activity.total|intcomma }} in total, {{ activity.last_30|intcomma }} in the last 30 days</dd></div>
+      </dl>
+      <svg class="spark" viewBox="0 0 {{ sparkline(activity.series).width }} {{ sparkline(activity.series).height }}" role="img" aria-label="Downloads served by this hub per day over the last 30 days; the busiest day had {{ sparkline(activity.series).peak }}">
+        {% set spark = sparkline(activity.series) %}
+        <polygon class="spark-area" points="{{ spark.area }}"/>
+        <polyline class="spark-line" points="{{ spark.line }}"/>
+      </svg>
+    </div>
+
+    <div class="panel">
+      <h2>Details</h2>
+      <dl class="facts">
+        {% if data.version_created_at %}<div><dt>Latest release</dt><dd>{{ data.version_created_at|datefmt }}</dd></div>{% endif %}
+        {% if data.licenses %}<div><dt>License</dt><dd>{{ data.licenses|join(", ") }}</dd></div>{% endif %}
+        {% if data.authors %}<div><dt>Authors</dt><dd>{{ data.authors }}</dd></div>{% endif %}
+        {% if ruby_required %}<div><dt>Ruby</dt><dd class="mono">{{ ruby_required }}</dd></div>{% endif %}
+        {% if data.platform %}<div><dt>Platform</dt><dd class="mono">{{ data.platform }}</dd></div>{% endif %}
+        {% if data.sha %}<div><dt>SHA-256 of the latest gem</dt><dd class="mono" title="{{ data.sha }}">{{ data.sha[:16] }}…</dd></div>{% endif %}
+        {% if view.owners and not view.private %}<div><dt>Owners</dt><dd>{% for owner in view.owners %}{% if owner.handle %}<a href="https://rubygems.org/profiles/{{ owner.handle|urlencode }}" rel="noopener noreferrer">{{ owner.handle }}</a>{% else %}{{ owner.id }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}</dd></div>{% endif %}
+      </dl>
+    </div>
+
+    {% if links %}
+    <div class="panel">
+      <h2>Links</h2>
+      <ul class="link-list">
+        {% for label, url in links %}
+        <li><a href="{{ url }}" rel="noopener noreferrer">{{ label }}</a><small>{{ url|host_of }}</small></li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    {% if view.private %}<p class="muted">Published to this hub, last updated {{ view.fetched_at|ago }}. It is not on rubygems.org.</p>{% else %}<p class="muted">Metadata checked {{ view.fetched_at|ago }}, served from {% if view.origin == 'upstream' %}rubygems.org{% elif view.origin == 'database' %}the hub database{% else %}the hub cache{% endif %}.</p>{% endif %}
+  </aside>
+</div>
+{% endblock %}

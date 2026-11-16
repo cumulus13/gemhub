@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}gemhub: RubyGems mirror{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>Gems, kept close to home.</h1>
+  <p>Search rubygems.org and install through this hub. Each gem you fetch is stored here for next time.</p>
+  <form class="search" role="search" action="{{ url_for('web.search') }}" method="get">
+    <label class="visually-hidden" for="hero-query">Search gems</label>
+    <input id="hero-query" type="search" name="query" maxlength="100" placeholder="Search rubygems.org, for example rails" autocomplete="off" autofocus>
+    <button type="submit">Search</button>
+  </form>
+</section>
+
+<section aria-labelledby="ledger-title">
+  <div class="ledger-head">
+    <h2 id="ledger-title">Gems in this hub</h2>
+    <dl class="totals">
+      <div><dt>gems</dt><dd>{{ stats.gems|intcomma }}</dd></div>
+      <div><dt>files stored</dt><dd>{{ stats.files|intcomma }}</dd></div>
+      <div><dt>on disk</dt><dd>{{ stats.bytes|filesize }}</dd></div>
+      <div><dt>downloads served</dt><dd>{{ stats.hub_downloads|intcomma }}</dd></div>
+    </dl>
+  </div>
+
+  {% if pagination.total == 0 %}
+    <div class="empty">
+      <h3>Nothing cached yet</h3>
+      <p>Gems appear here the first time someone opens their page or installs them through this hub. Search above and open a gem to add it, or point a client at this hub:</p>
+      <div class="install">
+        <header><span>Bundler, for every project</span><button type="button" data-copy="snippet-mirror">Copy</button></header>
+        <pre class="code" id="snippet-mirror">bundle config set --global mirror.https://rubygems.org {{ hub_url }}</pre>
+      </div>
+      <div class="install">
+        <header><span>RubyGems command line</span><button type="button" data-copy="snippet-source">Copy</button></header>
+        <pre class="code" id="snippet-source">gem install rails --clear-sources --source {{ hub_url }}</pre>
+      </div>
+    </div>
+  {% else %}
+    <nav class="sorts" aria-label="Sort order">
+      {% for key, label in sorts %}
+        <a href="{{ url_for('web.home', sort=key) }}"{% if key == sort %} aria-current="true"{% endif %}>{{ label }}</a>
+      {% endfor %}
+    </nav>
+    <ul class="ledger">
+      {% for gem in rows %}
+        <li>
+          <a class="row" href="{{ url_for('web.gem_page', name=gem.name) }}">
+            <span class="facet{% if not gem.is_private and gem.fetched_at < aging_before %} aging{% endif %}" aria-hidden="true"></span>
+            <span class="row-name">{{ gem.name }}{% if gem.latest_version %}<small>{{ gem.latest_version }}</small>{% endif %}</span>
+            <span class="row-summary">{{ gem.summary or "No description." }}</span>
+            <span class="row-meta"><strong>{{ gem.downloads|intcomma }}</strong> downloads{% if gem.is_private %}, private{% else %}, checked {{ gem.fetched_at|ago }}{% endif %}</span>
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+    {% set args = {'sort': sort} %}
+    {% set endpoint = 'web.home' %}
+    {% include "partials/_pagination.html" %}
+  {% endif %}
+</section>
+{% endblock %}

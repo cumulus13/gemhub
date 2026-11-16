@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}{{ view.name }} versions: gemhub{% endblock %}
+{% block content %}
+<header class="gem-head">
+  <p class="crumbs"><a href="{{ url_for('web.home') }}">Browse</a> / <a href="{{ url_for('web.gem_page', name=view.name) }}">{{ view.name }}</a></p>
+  <div class="gem-title"><h1>{{ view.name }} versions</h1></div>
+  <p class="gem-summary">{{ versions|length|intcomma }} releases published on rubygems.org.</p>
+</header>
+<div class="table-scroll">
+  <table class="data">
+    <thead>
+      <tr><th scope="col">Version</th><th scope="col">Built</th><th scope="col">Ruby</th><th scope="col">SHA-256</th><th scope="col" class="num">Downloads</th><th scope="col"><span class="visually-hidden">Share of the most downloaded version</span></th></tr>
+    </thead>
+    <tbody>
+      {% for v in versions %}
+      <tr>
+        <td class="mono">{{ v.number }}{% if v.platform and v.platform != 'ruby' %}<span class="tag">{{ v.platform }}</span>{% endif %}{% if v.prerelease %}<span class="tag">pre-release</span>{% endif %}</td>
+        <td>{{ v.created_at|datefmt }}</td>
+        <td class="mono">{{ v.ruby_version or "any" }}</td>
+        <td class="mono" title="{{ v.sha or '' }}">{{ (v.sha or "")[:12] }}</td>
+        <td class="num">{{ (v.downloads_count or 0)|intcomma }}</td>
+        <td>
+          <svg class="bar" viewBox="0 0 100 6" preserveAspectRatio="none" aria-hidden="true"><rect width="{{ (v.downloads_count or 0)|percent(max_dl) }}" height="6"/></svg>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

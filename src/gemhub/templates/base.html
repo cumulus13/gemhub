@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>{% block title %}gemhub{% endblock %}</title>
+  <meta name="description" content="{% block description %}A caching mirror for rubygems.org{% endblock %}">
+  <script nonce="{{ csp_nonce }}">(function(){try{var t=localStorage.getItem("gemhub-theme");if(t==="light"||t==="dark"){document.documentElement.setAttribute("data-theme",t);}}catch(e){}})();</script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css', v=hub_version) }}">
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/gem.svg', v=hub_version) }}">
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="{{ url_for('web.home') }}">
+        <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+          <polygon class="gem-fill" points="8,4 24,4 30,12 16,29 2,12"/>
+          <path class="gem-cut" d="M2 12h28M8 4l8 8 8-8M16 12v17"/>
+        </svg>
+        <span>gemhub</span>
+      </a>
+      <nav class="site-nav" aria-label="Main">
+        <a href="{{ url_for('web.home') }}"{% if request.endpoint == 'web.home' %} aria-current="page"{% endif %}>Browse</a>
+      </nav>
+      <div class="header-tools">
+        {% if request.endpoint != 'web.home' %}
+        <form class="search" role="search" action="{{ url_for('web.search') }}" method="get">
+          <label class="visually-hidden" for="header-query">Search gems</label>
+          <input id="header-query" type="search" name="query" maxlength="100" placeholder="Search gems" value="{{ query or '' }}" autocomplete="off">
+          <button type="submit">Search</button>
+        </form>
+        {% endif %}
+        <button type="button" class="icon-button" id="theme-toggle" aria-pressed="true">Theme</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="content">
+    <div class="wrap">
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <span>gemhub {{ hub_version }}, a caching mirror for rubygems.org.</span>
+      <span>Not affiliated with RubyGems.org.</span>
+    </div>
+  </footer>
+  <script src="{{ url_for('static', filename='js/app.js', v=hub_version) }}" defer></script>
+</body>
+</html>
