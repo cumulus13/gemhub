@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "gemhub"
-version = "1.0.5"
+version = "1.0.6"
 description = "Caching RubyGems mirror with a web hub: compact index, legacy index, verified gem files, and a package browser"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -33,6 +33,7 @@ classifiers = [
     "Topic :: System :: Software Distribution",
 ]
 dependencies = [
+    "psycopg[binary]>=3.1",
     "Flask>=3.0,<4",
     "Flask-SQLAlchemy>=3.1,<4",
     "SQLAlchemy>=2.0,<3",
