@@ -115,6 +115,8 @@ flowchart LR
     MS -. refresh .-> RG
 ```
 
+[![How it Works](https://raw.githubusercontent.com/licface15/images/refs/heads/main/gemhub/architecture1.jpg)](https://raw.githubusercontent.com/licface15/images/refs/heads/main/gemhub/architecture1.jpg)
+
 ### Gem download
 
 ```mermaid
@@ -138,6 +140,8 @@ sequenceDiagram
     end
 ```
 
+[![Gem download](https://raw.githubusercontent.com/licface15/images/refs/heads/main/gemhub/architecture2.jpg)](https://raw.githubusercontent.com/licface15/images/refs/heads/main/gemhub/architecture2.jpg)
+
 ### Metadata freshness for gem pages
 
 ```mermaid
@@ -152,6 +156,8 @@ flowchart TD
     G -- yes --> H[Render with a notice] --> Z
     G -- no --> I[502 page]
 ```
+
+[![Metadata freshness for gem pages](https://raw.githubusercontent.com/licface15/images/refs/heads/main/gemhub/architecture3.jpg)](https://raw.githubusercontent.com/licface15/images/refs/heads/main/gemhub/architecture3.jpg)
 
 Without Redis the same short-lived layer is kept in memory inside the process.
 
