@@ -18,7 +18,7 @@ ENV PYTHONUNBUFFERED=1 \
 RUN useradd --system --uid 10001 --create-home --home-dir /home/gemhub gemhub \
  && mkdir -p /data && chown gemhub:gemhub /data
 COPY --from=build /wheels /wheels
-RUN pip install --no-index --find-links=/wheels /wheels/gemhub-*.whl \
+RUN pip install --no-index "psycopg[binary]>=3.1" --find-links=/wheels /wheels/gemhub-*.whl \
  && rm -rf /wheels
 USER gemhub
 VOLUME ["/data"]
