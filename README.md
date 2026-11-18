@@ -15,6 +15,13 @@ A caching RubyGems mirror with a web hub, in the spirit of `pypihub`. Point `gem
 - **Any database, with migrations.** SQLAlchemy plus Alembic: SQLite by default, PostgreSQL tested, MySQL/MariaDB supported by the code. Optional Redis.
 - **Single process, no build step.** No Node, no CSS toolchain, no external fonts or CDNs, so it renders on an isolated network.
 
+
+<p align="center">
+  <a href="https://raw.githubusercontent.com/licface15/images/refs/heads/main/gemhub/home.png" target="_blank">
+    <img src="https://raw.githubusercontent.com/licface15/images/refs/heads/main/gemhub/home.png" width="98%" alt="Screenshot 1">
+  </a>
+</p>
+
 ## Quick start
 
 ```bash

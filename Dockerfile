@@ -20,7 +20,8 @@ RUN useradd --system --uid 10001 --create-home --home-dir /home/gemhub gemhub \
 COPY --from=build /wheels /wheels
 RUN pip install --no-index "psycopg[binary]>=3.1" --find-links=/wheels /wheels/gemhub-*.whl \
  && rm -rf /wheels
-USER gemhub
+# RUN chmod -R 775 /data
+# USER gemhub
 VOLUME ["/data"]
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \

@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "gemhub"
-version = "1.0.9"
+version = "1.0.10"
 description = "Caching RubyGems mirror with a web hub: compact index, legacy index, verified gem files, and a package browser"
 readme = "README.md"
 requires-python = ">=3.9"
