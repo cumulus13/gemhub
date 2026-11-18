@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "gemhub"
-version = "1.0.8"
+version = "1.0.9"
 description = "Caching RubyGems mirror with a web hub: compact index, legacy index, verified gem files, and a package browser"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -55,6 +55,7 @@ mysql = [
     "PyMySQL>=1.1",
 ]
 dev = [
+    "psycopg[binary]>=3.1",
     "pytest>=8",
     "ruff>=0.5",
 ]
