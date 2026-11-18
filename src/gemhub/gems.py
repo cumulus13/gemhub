@@ -136,6 +136,9 @@ class GemStore:
             verified = True
         elif self.settings.verify_checksums:
             log.warning("No upstream checksum available for %s; stored unverified", filename)
+        if path.exists():  # another worker finished first; never replace a file in use
+            tmp.unlink(missing_ok=True)
+            return path
         replace_file(tmp, path)
         self._register(filename, gem_name or self._guess_name(filename), size, actual, verified)
         self._evict_if_needed(keep=filename)

@@ -190,3 +190,64 @@ def test_api_json_is_passed_through_unchanged(client, upstream):
     assert client.get("/api/v1/search.json?query=fo").get_json()[0]["name"] == "foo"
     assert client.get("/api/v1/search.json").status_code == 400
     assert client.get("/api/v1/gems/nope.json").status_code == 404
+
+
+def _body_files(app, namespace):
+    return sorted((app.extensions["gemhub"].proxy.root / namespace).rglob("*.body"))
+
+
+def test_refresh_works_while_a_client_still_has_the_old_file_open(
+    app, client, upstream, monkeypatch
+):
+    """Windows cannot replace or delete a file another request is reading; emulate that."""
+    import os
+    from pathlib import Path
+
+    upstream.add_gem("foo", "1.0.0")
+    client.get("/versions")
+    (locked,) = _body_files(app, "compact")  # a slow client is downloading this file
+
+    real_replace, real_unlink = os.replace, Path.unlink
+
+    def guarded_replace(src, dst, *args, **kwargs):
+        if Path(dst) == locked:
+            raise PermissionError(5, "Access is denied", str(dst))
+        return real_replace(src, dst, *args, **kwargs)
+
+    def guarded_unlink(self, *args, **kwargs):
+        if self == locked:
+            raise PermissionError(5, "Access is denied", str(self))
+        return real_unlink(self, *args, **kwargs)
+
+    monkeypatch.setattr(os, "replace", guarded_replace)
+    monkeypatch.setattr(Path, "unlink", guarded_unlink)
+
+    upstream.add_gem("bar", "2.0.0")  # ranged update path
+    assert client.get("/versions").data == upstream.versions_body()
+    upstream.versions_override = b"created_at: 2026-02-02T00:00:00Z\n---\nfoo 9.9.9 abc\n"
+    assert client.get("/versions").data == upstream.versions_override  # full refetch path
+    assert locked.exists()  # could not be removed while "open", and nobody crashed
+
+    monkeypatch.undo()  # the slow client finished
+    upstream.versions_override = b""
+    upstream.add_gem("baz", "3.0.0")
+    assert client.get("/versions").data == upstream.versions_body()
+    assert len(_body_files(app, "compact")) == 1  # old bodies were cleaned up afterwards
+
+
+def test_negative_cache_does_not_delete_a_body_in_use(app, client, upstream, monkeypatch):
+    from pathlib import Path
+
+    upstream.add_gem("foo", "1.0.0")
+    client.get("/info/foo")
+    (locked,) = _body_files(app, "info")
+    real_unlink = Path.unlink
+
+    def guarded_unlink(self, *args, **kwargs):
+        if self == locked:
+            raise PermissionError(5, "Access is denied", str(self))
+        return real_unlink(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "unlink", guarded_unlink)
+    upstream.gems.clear()  # the gem disappears upstream: 404 replaces the cached body
+    assert client.get("/info/foo").status_code == 404

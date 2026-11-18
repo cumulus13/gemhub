@@ -15,7 +15,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        # ubuntu-latest (26.04) no longer provides Python 3.9, so Linux is pinned.
+        os: [ubuntu-24.04, windows-latest]
         python: ["3.9", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
@@ -41,7 +42,7 @@ jobs:
         with:
           ruby-version: "3.3"
       - run: python -m pip install -e ".[dev]"
-      - run: tests/e2e/build_fixture.sh "$RUNNER_TEMP/fixture"
+      - run: bash tests/e2e/build_fixture.sh "$RUNNER_TEMP/fixture"
       - run: python tests/e2e/run_ruby_e2e.py "$RUNNER_TEMP/fixture"
       - run: python tests/e2e/run_private_e2e.py "$RUNNER_TEMP/fixture"
 

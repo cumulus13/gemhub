@@ -164,23 +164,25 @@ def test_private_gems_still_served_when_upstream_is_down(client, upstream, keys)
     upstream.fail = True
     versions = client.get("/versions")
     assert versions.status_code == 200 and b"acme 1.0.0 " in versions.data
-    assert client.get("/names").get_data(as_text=True) == "---\nacme\n"
+    assert client.get("/names").data == b"---\nacme\n"  # bytes: no CRLF, even on Windows
     assert client.get("/gems/acme-1.0.0.gem").status_code == 200
 
 
 @pytest.mark.parametrize(
-    "data,status",
+    "make,status",
     [
-        (b"", 400),
-        (b"this is not a gem", 422),
-        (build_gem("nodata", include_data=False), 422),
-        (build_gem("badsums", break_checksums=True), 422),
-        (build_gem("native", platform="x86_64-linux"), 422),
-        (build_gem("..sneaky"), 422),
+        pytest.param(lambda: b"", 400, id="empty-body"),
+        pytest.param(lambda: b"this is not a gem", 422, id="not-a-tar"),
+        pytest.param(lambda: build_gem("nodata", include_data=False), 422, id="no-data-archive"),
+        pytest.param(lambda: build_gem("badsums", break_checksums=True), 422, id="bad-checksums"),
+        pytest.param(lambda: build_gem("native", platform="x86_64-linux"), 422, id="platform-gem"),
+        pytest.param(lambda: build_gem("..sneaky"), 422, id="traversal-name"),
     ],
 )
-def test_bad_uploads_are_rejected(client, keys, data, status):
-    assert push(client, keys["owner"], data).status_code == status
+def test_bad_uploads_are_rejected(client, keys, make, status):
+    # Builders, not bytes, in the parameters: raw bytes become the test id, which on Windows
+    # overflows the 32767 character limit of the PYTEST_CURRENT_TEST environment variable.
+    assert push(client, keys["owner"], make()).status_code == status
 
 
 def test_oversized_upload_is_rejected(make_settings):
@@ -234,3 +236,19 @@ def test_marshal_writer_roundtrips_through_gemfile_parser():
     assert parsed.name == "acme" and parsed.filename == "acme-1.0.0.gem"
     assert parsed.dependencies[0]["requirements"] == [(">=", "2.0")]
     assert io.BytesIO(b"").read() == b""
+
+
+def test_merged_index_files_never_contain_carriage_returns(client, upstream, keys, monkeypatch):
+    """Windows text mode turns "\\n" into "\\r\\n"; emulate it so Linux CI catches regressions."""
+    from pathlib import Path
+
+    real_write_text = Path.write_text
+
+    def windows_write_text(self, data, encoding=None, errors=None, newline=None):
+        return real_write_text(self, data.replace("\n", "\r\n"), encoding, errors, newline)
+
+    monkeypatch.setattr(Path, "write_text", windows_write_text)
+    upstream.add_gem("rack", "3.0.0")
+    push(client, keys["owner"], build_gem("acme"))
+    for path in ("/names", "/versions"):
+        assert b"\r" not in client.get(path).data, path

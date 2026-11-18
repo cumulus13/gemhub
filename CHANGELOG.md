@@ -1,6 +1,14 @@
 # Changelog
 
-## 0.2.0
+## 1.0.2
+
+### Fixed (found by the first Windows CI run)
+- **Windows: `PermissionError` on refresh.** Cached index bodies were replaced in place, which Windows refuses while a client is still reading the file; the request failed with HTTP 500. Bodies are now written to a new file and the metadata is switched over, and old files are removed on a best-effort basis. Caches from 0.2.0 are read as before.
+- **Windows: corrupted `/names`.** The merged names file was written in text mode, so every line ended in `\r\n`. It is now written as bytes.
+- A gem file finished by two workers at once no longer tries to replace a file that may be in use.
+- Tests: no raw gem bytes in parametrize ids (overflowed an environment variable on Windows). CI: Linux matrix pinned to `ubuntu-24.04` (Python 3.9 is not available on 26.04) and the fixture script is run through `bash`; `.gitattributes` keeps `*.sh` on LF.
+
+## 1.0.1
 
 ### Added
 - **Private gems.** `gem push`, `gem yank` and `gem yank --undo` against the hub, authenticated with API keys (`gemhub key create`). Private gems are merged into the compact index (`/names`, `/versions`, `/info/<gem>`), downloadable, installable with `gem install` and Bundler, and shown in the web hub.

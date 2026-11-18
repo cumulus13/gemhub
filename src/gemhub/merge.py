@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import contextlib
 import hashlib
 import json
 import threading
@@ -30,7 +31,6 @@ class MergedIndex:
         token: str,
         writer: Callable[[Path, Optional[Path]], None],
     ) -> Entry:
-        body = self.root / name
         meta_path = self.root / f"{name}.json"
         base_tag = (
             (base.meta.get("etag") or str(base.meta.get("fetched_at"))) if base else "offline"
@@ -41,25 +41,34 @@ class MergedIndex:
                 meta: Dict = json.loads(meta_path.read_text("utf-8"))
             except (OSError, ValueError):
                 meta = {}
-            if meta.get("key") != key or not body.exists():
-                tmp = body.with_name(f"{name}.{uuid.uuid4().hex}.tmp")
-                writer(tmp, base.path if base and base.status == 200 else None)
+            current = self.root / meta["file"] if meta.get("file") else None
+            if meta.get("key") != key or current is None or not current.exists():
+                # Always a new file: Windows cannot replace a file another request is reading.
+                new = self.root / f"{name}.{uuid.uuid4().hex[:16]}.body"
+                writer(new, base.path if base and base.status == 200 else None)
                 md5, sha = hashlib.md5(usedforsecurity=False), hashlib.sha256()
-                with open(tmp, "rb") as fh:
+                with open(new, "rb") as fh:
                     for chunk in iter(lambda: fh.read(1 << 20), b""):
                         md5.update(chunk)
                         sha.update(chunk)
-                replace_file(tmp, body)
                 meta = {
                     "key": key,
+                    "file": new.name,
                     "status": 200,
                     "fetched_at": time.time(),
                     "etag": f'"{md5.hexdigest()}"',
                     "repr-digest": "sha-256=:" + base64.b64encode(sha.digest()).decode() + ":",
                     "content-type": TEXT,
                 }
-                meta_path.write_text(json.dumps(meta), "utf-8")
-        return Entry(200, body, meta, stale=bool(base and base.stale))
+                tmp = meta_path.with_name(f"{meta_path.name}.{uuid.uuid4().hex}.tmp")
+                tmp.write_text(json.dumps(meta), "utf-8")
+                replace_file(tmp, meta_path)
+                for old in self.root.glob(f"{name}.*.body"):
+                    if old.name != new.name:
+                        with contextlib.suppress(OSError):
+                            old.unlink()
+                current = new
+        return Entry(200, current, meta, stale=bool(base and base.stale))
 
     def versions(self, base: Optional[Entry], extra: bytes, token: str) -> Entry:
         def write(tmp: Path, source: Optional[Path]) -> None:
@@ -89,6 +98,7 @@ class MergedIndex:
                         names.add(line.strip())
                     elif line.strip() == "---":
                         after = True
-            tmp.write_text("---\n" + "".join(f"{n}\n" for n in sorted(names)), "utf-8")
+            # Bytes, not text mode: Windows would turn every "\n" into "\r\n" and corrupt the index.
+            tmp.write_bytes(("---\n" + "".join(f"{n}\n" for n in sorted(names))).encode("utf-8"))
 
         return self._build("names", base, token, write)
