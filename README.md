@@ -2,6 +2,11 @@
 
 A caching RubyGems mirror with a web hub, in the spirit of `pypihub`. Point `gem` and Bundler at it and every gem is fetched from rubygems.org once, verified, stored, and served locally from then on. Open it in a browser to search rubygems.org and browse a rubygems.org-style page for each gem.
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/cumulus13/gemhub/master/logo.png?raw=true" width="400" alt="Logo">
+</p>
+
+
 - **Works with the real clients.** `gem install` and Bundler (compact index) are covered by an end-to-end test that runs the actual Ruby tools against the hub.
 - **Verified downloads.** A `.gem` is compared with the SHA-256 in the compact index before it is stored. A mismatch is rejected and never cached.
 - **Survives outages.** If rubygems.org is down, cached indexes and gems keep being served (`stale-if-error`).
