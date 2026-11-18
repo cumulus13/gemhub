@@ -245,7 +245,7 @@ GEMHUB_TEST_DATABASE_URL=postgresql+psycopg://user:pw@localhost/gemhub_test pyte
 
 ## License
 
-MIT
+[MIT](LICENSE)
 
 
 ## 👤 Author
